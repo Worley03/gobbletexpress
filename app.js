@@ -1,61 +1,120 @@
-const express = require("express");
+import express from 'express';
+import http from 'http';
+import * as socketIo from 'socket.io';
+
+const port = process.env.PORT || 3000;
+
+
+//let currentTurn = 'player1'; // Initialize the turn to Player 1
+let roomStates = {}; // Keeps track of the state of each room
+
+function resetRoomState(roomId) {
+    roomStates[roomId] = { players: [], currentPlayer: 'player1', currentTurn: 'player1' };
+    // Any other initial state settings as needed
+}
+
 const app = express();
-const port = process.env.PORT || 3001;
+const httpServer = http.createServer(app);
+const io = new socketIo.Server(httpServer, {
+    cors: {
+        origin: "https://worley03.github.io/", // Your client's URL
+        methods: ["GET", "POST"]
+    }
+});
 
-app.get("/", (req, res) => res.type('html').send(html));
+io.on('connection', (socket) => {
+    console.log(`User with socket ID ${socket.id} connected`);
+    socket.on('checkRoom', (room, callback) => {
+        const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
+        const isFull = roomSize >= 2;
+        callback(isFull);
+    });
 
-const server = app.listen(port, () => console.log(`Example app listening on port ${port}!`));
 
-server.keepAliveTimeout = 120 * 1000;
-server.headersTimeout = 120 * 1000;
+    socket.on('joinRoom', (room) => {
+        const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
 
-const html = `
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Hello from Render!</title>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-    <script>
-      setTimeout(() => {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          disableForReducedMotion: true
-        });
-      }, 500);
-    </script>
-    <style>
-      @import url("https://p.typekit.net/p.css?s=1&k=vnd5zic&ht=tk&f=39475.39476.39477.39478.39479.39480.39481.39482&a=18673890&app=typekit&e=css");
-      @font-face {
-        font-family: "neo-sans";
-        src: url("https://use.typekit.net/af/00ac0a/00000000000000003b9b2033/27/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3") format("woff2"), url("https://use.typekit.net/af/00ac0a/00000000000000003b9b2033/27/d?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3") format("woff"), url("https://use.typekit.net/af/00ac0a/00000000000000003b9b2033/27/a?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3") format("opentype");
-        font-style: normal;
-        font-weight: 700;
-      }
-      html {
-        font-family: neo-sans;
-        font-weight: 700;
-        font-size: calc(62rem / 16);
-      }
-      body {
-        background: white;
-      }
-      section {
-        border-radius: 1em;
-        padding: 1em;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        margin-right: -50%;
-        transform: translate(-50%, -50%);
-      }
-    </style>
-  </head>
-  <body>
-    <section>
-      Hello from Render!
-    </section>
-  </body>
-</html>
-`
+        if (roomSize < 2) {
+            socket.join(room);
+            // Handle joining room logic here
+            // Assign player role
+            let playerRole = roomSize === 0 ? 'player1' : 'player2';
+            console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
+            socket.emit('roleAssigned', playerRole);
+
+        } else {
+            // Send a message back to the client if the room is full
+            socket.emit('roomFull', `Room ${room} is already full`);
+        }
+        if (!roomStates[room]) {
+            roomStates[room] = { players: [socket.id], currentPlayer: 'player1', currentTurn: 'player1' };
+        } else {
+            roomStates[room].players.push(socket.id);
+            // Notify both players that the game can start when the second player joins
+            if (roomStates[room].players.length === 2) {
+                io.to(room).emit('gameStart');
+            }
+        }
+    });
+
+    socket.on('makeMove', (data) => {
+        const roomState = roomStates[data.room];
+
+        if (socket.id === roomState.players[roomState.currentTurn === 'player1' ? 0 : 1]) {
+            roomState.currentTurn = roomState.currentTurn === 'player1' ? 'player2' : 'player1';
+            roomState.currentPlayer = roomState.currentTurn;
+            io.to(data.room).emit('moveMade', {
+                newGridCells: data.newGridCells,
+                nextTurn: roomState.currentTurn
+            });
+        }
+        console.log(`${data}`);
+    });
+
+    socket.on('leaveRoom', (room) => {
+        const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
+        console.log(`User with socket ID ${socket.id} left ${room}`);
+        socket.leave(room);
+        console.log(`Room size ${roomSize}`);
+
+
+        // Remove the player from the room state
+        if (roomStates[room]) {
+            const index = roomStates[room].players.indexOf(socket.id);
+            if (index !== -1) {
+                roomStates[room].players.splice(index, 1);
+            }
+
+            // Reset the room if it's empty or under certain conditions
+            if (roomStates[room].players.length === 0) {
+                resetRoomState(room);
+                console.log(`${room} reset`);
+            }
+        }
+    });
+
+
+    socket.on('disconnect', () => {
+        console.log(`User with socket ID ${socket.id} disconnected`);
+        for (const [room, state] of Object.entries(roomStates)) {
+            const playerIndex = state.players.indexOf(socket.id);
+            if (playerIndex !== -1) {
+                state.players.splice(playerIndex, 1);
+                // Reset or update the room as necessary
+                if (state.players.length === 0) {
+                    resetRoomState(room);
+                    console.log(`${room} reset`);
+                } else {
+                    // Additional logic if other players are still in the room
+                }
+
+                break; // Stop searching once the player's room is found
+            }
+        }
+    });
+});
+
+// Start the HTTP server, not the Express app
+httpServer.listen(port, () => {
+    console.log('Server is running on port ' + port);
+});
