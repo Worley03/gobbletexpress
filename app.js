@@ -4,13 +4,31 @@ import * as socketIo from 'socket.io';
 
 const port = process.env.PORT || 3000;
 
-
 //let currentTurn = 'player1'; // Initialize the turn to Player 1
 let roomStates = {}; // Keeps track of the state of each room
 
 function resetRoomState(roomId) {
-    roomStates[roomId] = { players: [], currentPlayer: 'player1', currentTurn: 'player1' };
+    roomStates[roomId] = {
+        players: [],
+        currentPlayer: 'player1',
+        currentTurn: 'player1',
+        timeoutId: null
+    };
     // Any other initial state settings as needed
+}
+
+function resetInactivityTimer(roomId) {
+    // Clear existing timer
+    if (roomStates[roomId]?.timeoutId) {
+        clearTimeout(roomStates[roomId].timeoutId);
+    }
+
+    // Set a new timer
+    roomStates[roomId].timeoutId = setTimeout(() => {
+        console.log(`Room ${roomId} has been reset due to inactivity.`);
+        resetRoomState(roomId);
+        // Optionally, notify players in the room about the reset
+    }, 300000);  // 5 minutes = 300000 milliseconds
 }
 
 const app = express();
@@ -42,6 +60,11 @@ io.on('connection', (socket) => {
             console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
             socket.emit('roleAssigned', playerRole);
 
+            if (roomSize === 1) { // This means there is already one player in the room
+                // Emit to the other player in the room that their opponent has connected
+                socket.to(room).emit('opponentConnected');
+            }
+
         } else {
             // Send a message back to the client if the room is full
             socket.emit('roomFull', `Room ${room} is already full`);
@@ -53,6 +76,7 @@ io.on('connection', (socket) => {
             // Notify both players that the game can start when the second player joins
             if (roomStates[room].players.length === 2) {
                 io.to(room).emit('gameStart');
+                resetInactivityTimer(room);  // Reset inactivity timer
             }
         }
     });
@@ -68,6 +92,7 @@ io.on('connection', (socket) => {
                 nextTurn: roomState.currentTurn
             });
         }
+        resetInactivityTimer(data.room);  // Reset inactivity timer
         console.log(`${data}`);
     });
 
@@ -84,7 +109,10 @@ io.on('connection', (socket) => {
             if (index !== -1) {
                 roomStates[room].players.splice(index, 1);
             }
-
+            if (roomStates[room].players.length === 1) {
+                // Notify the remaining player that their opponent has left
+                io.to(roomStates[room].players[0]).emit('opponentDisconnected');
+            }
             // Reset the room if it's empty or under certain conditions
             if (roomStates[room].players.length === 0) {
                 resetRoomState(room);
