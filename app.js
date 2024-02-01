@@ -71,7 +71,7 @@ io.on('connection', (socket) => {
             // Notify both players that the game can start when the second player joins
             if (roomStates[room].players.length === 2) {
                 io.to(room).emit('gameStart');                
-                socket.to(room).emit('opponentConnected');
+                socket.emit('opponentConnected');
                 console.log(`Game start in ${room}`)
                 resetInactivityTimer(room);  // Reset inactivity timer
             }
