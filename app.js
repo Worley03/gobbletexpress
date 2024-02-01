@@ -72,6 +72,7 @@ io.on('connection', (socket) => {
             if (roomStates[room].players.length === 2) {
                 io.to(room).emit('gameStart');                
                 socket.emit('opponentConnected');
+                socket.to(room).emit('opponentConnected');
                 console.log(`Game start in ${room}`)
                 resetInactivityTimer(room);  // Reset inactivity timer
             }
