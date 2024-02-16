@@ -49,6 +49,7 @@ const io = new socketIo.Server(httpServer, {
 
 io.on('connection', (socket) => {
     if (socket.recovered) {
+        console.log(`User with socket ID ${socket.id} reconnected`);
         // recovery was successful: socket.id, socket.rooms and socket.data were restored
     } else {
         console.log(`User with socket ID ${socket.id} connected`);
