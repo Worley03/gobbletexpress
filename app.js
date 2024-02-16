@@ -71,15 +71,15 @@ io.on('connection', (socket) => {
                 // Assign player role
                 //if roomStates[roomId].rejoinAssignment isn't null, set as playerRole
                 // Check if the room has a rejoinAssignment
-                if (roomStates[room].rejoinAssignment) {
+                if (!roomStates[room].rejoinAssignment) {
+                    let playerRole = roomSize === 0 ? 'player1' : 'player2';
+                    console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
+                    socket.emit('roleAssigned', playerRole);
+                } else {
                     // If roomStates[roomId].rejoinAssignment isn't null, set as playerRole
                     var playerRole = roomStates[room].rejoinAssignment;
                     console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
-                    socket.emit('roleAssigned', playerRole);    
-                } else {
-                let playerRole = roomSize === 0 ? 'player1' : 'player2';
-                console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
-                socket.emit('roleAssigned', playerRole);
+                    socket.emit('roleAssigned', playerRole); 
                 }
             } else {
                 // Send a message back to the client if the room is full
