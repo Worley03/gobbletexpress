@@ -7,6 +7,16 @@ const port = process.env.PORT || 3000;
 //let currentTurn = 'player1'; // Initialize the turn to Player 1
 let roomStates = {}; // Keeps track of the state of each room
 
+function resetRoomState(roomId) {
+    roomStates[roomId] = {
+        players: [],
+        currentPlayer: 'player1',
+        currentTurn: 'player1',
+        timeoutId: null
+    };
+    // Any other initial state settings as needed
+}
+
 function resetInactivityTimer(roomId) {
     // Clear existing timer
     if (roomStates[roomId]?.timeoutId) {
@@ -28,46 +38,56 @@ const io = new socketIo.Server(httpServer, {
     cors: {
         origin: "*", // Your client's URL
         methods: ["GET", "POST"]
-    }
+    },
+    connectionStateRecovery: {
+        // the backup duration of the sessions and the packets
+        maxDisconnectionDuration: 2 * 60 * 1000,
+        // whether to skip middlewares upon successful recovery
+        skipMiddlewares: true,
+      }
 });
 
 io.on('connection', (socket) => {
-    console.log(`User with socket ID ${socket.id} connected`);
-    socket.on('checkRoom', (room, callback) => {
-        const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
-        const isFull = roomSize >= 2;
-        callback(isFull);
-    });
+    if (socket.recovered) {
+        // recovery was successful: socket.id, socket.rooms and socket.data were restored
+    } else {
+        console.log(`User with socket ID ${socket.id} connected`);
+        socket.on('checkRoom', (room, callback) => {
+            const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
+            const isFull = roomSize >= 2;
+            callback(isFull);
+        });
 
+        socket.on('joinRoom', (room) => {
+            const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
 
-    socket.on('joinRoom', (room) => {
-        const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
+            if (roomSize < 2) {
+                socket.join(room);
+                // Handle joining room logic here
+                // Assign player role
+                let playerRole = roomSize === 0 ? 'player1' : 'player2';
+                console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
+                socket.emit('roleAssigned', playerRole);
 
-        if (roomSize < 2) {
-            socket.join(room);
-            // Handle joining room logic here
-            // Assign player role
-            let playerRole = roomSize === 0 ? 'player1' : 'player2';
-            console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
-            socket.emit('roleAssigned', playerRole);
-
-        } else {
-            // Send a message back to the client if the room is full
-            socket.emit('roomFull', `Room ${room} is already full`);
-        }
-        if (!roomStates[room]) {
-            roomStates[room] = { players: [socket.id], currentPlayer: 'player1', currentTurn: 'player1' };
-        } else {
-            roomStates[room].players.push(socket.id);
-            // Notify both players that the game can start when the second player joins
-            if (roomStates[room].players.length === 2) {
-                socket.emit('opponentConnected');
-                socket.to(room).emit('opponentConnected');
-                io.to(room).emit('gameStart');
-                resetInactivityTimer(room);  // Reset inactivity timer
+            } else {
+                // Send a message back to the client if the room is full
+                socket.emit('roomFull', `Room ${room} is already full`);
             }
-        }
-    });
+            if (!roomStates[room]) {
+                roomStates[room] = { players: [socket.id], currentPlayer: 'player1', currentTurn: 'player1' };
+            } else {
+                roomStates[room].players.push(socket.id);
+                // Notify both players that the game can start when the second player joins
+                if (roomStates[room].players.length === 2) {
+                    socket.emit('opponentConnected');
+                    socket.to(room).emit('opponentConnected');
+                    io.to(room).emit('gameStart');
+                    resetInactivityTimer(room);  // Reset inactivity timer
+                }
+            }
+        });
+    }
+
 
     socket.on('makeMove', (data) => {
         const roomState = roomStates[data.room];
