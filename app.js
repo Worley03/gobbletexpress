@@ -21,6 +21,7 @@ function resetInactivityTimer(roomId) {
     // Clear existing timer
     if (roomStates[roomId]?.timeoutId) {
         clearTimeout(roomStates[roomId].timeoutId);
+        console.log(`Room ${roomId} inactivity timer has been reset.`);
     }
 
     // Set a new timer
@@ -48,9 +49,11 @@ const io = new socketIo.Server(httpServer, {
 
 io.on('connection', (socket) => {
     if (socket.recovered) {
-        console.log(`User with socket ID ${socket.id} reconnected`);
-        // recovery was successful: socket.id, socket.rooms and socket.data were restored
+        console.log(`User with socket ID ${socket.id} reconnected to ${socket.rooms}`);
+        socket.to(socket.rooms).emit('opponentConnected');
+        // check for recovery, if recovery was successful: socket.id, socket.rooms and socket.data were restored
     } else {
+        // run initial room join fuctions
         console.log(`User with socket ID ${socket.id} connected`);
         socket.on('checkRoom', (room, callback) => {
             const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
@@ -101,6 +104,7 @@ io.on('connection', (socket) => {
             });
         }
         resetInactivityTimer(data.room);  // Reset inactivity timer
+        console.log(`Room ${data.room}, ${data.newGridCells}`);
     });
 
     socket.on('leaveRoom', (room) => {
