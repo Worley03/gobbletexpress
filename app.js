@@ -7,20 +7,11 @@ const port = process.env.PORT || 3000;
 //let currentTurn = 'player1'; // Initialize the turn to Player 1
 let roomStates = {}; // Keeps track of the state of each room
 
-function resetRoomState(roomId) {
-    roomStates[roomId] = {
-        players: [],
-        currentPlayer: 'player1',
-        currentTurn: 'player1',
-        timeoutId: null
-    };
-    // Any other initial state settings as needed
-}
-
 function resetInactivityTimer(roomId) {
     // Clear existing timer
     if (roomStates[roomId]?.timeoutId) {
         clearTimeout(roomStates[roomId].timeoutId);
+        console.log(`Room ${roomId} inactivity timer has been reset.`);
     }
 
     // Set a new timer
@@ -70,10 +61,9 @@ io.on('connection', (socket) => {
             roomStates[room].players.push(socket.id);
             // Notify both players that the game can start when the second player joins
             if (roomStates[room].players.length === 2) {
-                io.to(room).emit('gameStart');                
                 socket.emit('opponentConnected');
                 socket.to(room).emit('opponentConnected');
-                console.log(`Game start in ${room}`)
+                io.to(room).emit('gameStart');
                 resetInactivityTimer(room);  // Reset inactivity timer
             }
         }
@@ -91,7 +81,7 @@ io.on('connection', (socket) => {
             });
         }
         resetInactivityTimer(data.room);  // Reset inactivity timer
-        console.log(`${data}`);
+        console.log(`Room ${data.room}, ${data.newGridCells}`);
     });
 
     socket.on('leaveRoom', (room) => {
@@ -111,13 +101,14 @@ io.on('connection', (socket) => {
                 // Notify the remaining player that their opponent has left
                 io.to(roomStates[room].players[0]).emit('opponentDisconnected');
             }
-            // Reset the room if it's empty or under certain conditions
+                // Reset the room if it's empty or under certain conditions
             else if (roomStates[room].players.length === 0) {
                 resetRoomState(room);
                 console.log(`${room} reset`);
             }
         }
     });
+
 
     socket.on('disconnect', () => {
         console.log(`User with socket ID ${socket.id} disconnected`);
