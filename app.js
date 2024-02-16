@@ -10,9 +10,11 @@ let roomStates = {}; // Keeps track of the state of each room
 function resetRoomState(roomId) {
     roomStates[roomId] = {
         players: [],
+        playerRoles: {},  // New field to map socket IDs to player roles
         currentPlayer: 'player1',
         currentTurn: 'player1',
-        timeoutId: null
+        timeoutId: null,
+        rejoinAssignment: null
     };
     // Any other initial state settings as needed
 }
@@ -67,18 +69,27 @@ io.on('connection', (socket) => {
                 socket.join(room);
                 // Handle joining room logic here
                 // Assign player role
+                //if roomStates[roomId].rejoinAssignment isn't null, set as playerRole
+                // Check if the room has a rejoinAssignment
+                if (roomStates[room].rejoinAssignment) {
+                    // If roomStates[roomId].rejoinAssignment isn't null, set as playerRole
+                    var playerRole = roomStates[room].rejoinAssignment;
+                    console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
+                    socket.emit('roleAssigned', playerRole);    
+                } else {
                 let playerRole = roomSize === 0 ? 'player1' : 'player2';
                 console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
                 socket.emit('roleAssigned', playerRole);
-
+                }
             } else {
                 // Send a message back to the client if the room is full
                 socket.emit('roomFull', `Room ${room} is already full`);
             }
             if (!roomStates[room]) {
-                roomStates[room] = { players: [socket.id], currentPlayer: 'player1', currentTurn: 'player1' };
+                roomStates[room] = { players: [socket.id], playerRoles: { [socket.id]: playerRole }, currentPlayer: 'player1', currentTurn: 'player1' };
             } else {
                 roomStates[room].players.push(socket.id);
+                roomStates[room].playerRoles[socket.id] = playerRole;  // Map the socket ID to the player role
                 // Notify both players that the game can start when the second player joins
                 if (roomStates[room].players.length === 2) {
                     socket.emit('opponentConnected');
@@ -141,7 +152,11 @@ io.on('connection', (socket) => {
                 if (state.players.length === 1) {
                     // Notify the remaining player that their opponent has disconnected
                     io.to(state.players[0]).emit('opponentDisconnected');
-                } else if (state.players.length === 0) {
+                    // Set rejoinAssignment to the role of the player who just disconnected
+                    state.rejoinAssignment = state.playerRoles[socket.id];
+                    delete state.playerRoles[socket.id];  // Remove the player's socket ID from the mapping
+                } 
+                else if (state.players.length === 0) {
                     resetRoomState(room);
                     console.log(`${room} reset`);
                 }
@@ -149,6 +164,8 @@ io.on('connection', (socket) => {
                 break; // Stop searching once the player's room is found
             }
         }
+        // if player who left was assigned "player 1", set roomStates[roomId].rejoinAssignment to 'player 1"
+         // if player who left was assigned "player 2", set roomStates[roomId].rejoinAssignment to 'player 2"
     });
 });
 
