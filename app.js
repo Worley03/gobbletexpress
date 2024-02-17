@@ -122,8 +122,9 @@ io.on('connection', (socket) => {
     socket.on('makeMove', (data) => {
         const roomState = roomStates[data.room];
 
-        if (roomState.players[roomState.currentTurn === 'player1' ? 0 : 1]) {
-            roomState.currentTurn = roomState.currentTurn === 'player1' ? 'player2' : 'player1';
+        if (roomState.currentTurn === 'player1' || roomState.currentTurn === 'player2') {
+            // Switch turns even if player is disconnected
+            roomState.currentTurn = roomState.currentTurn === 'player1' ? 'player2' : 'player1';        
             roomState.currentBoard = data.newGridCells; // Save newGridCells as currentBoard
             io.to(data.room).emit('moveMade', {
                 newGridCells: data.newGridCells,
