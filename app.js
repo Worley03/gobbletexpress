@@ -12,7 +12,8 @@ function resetRoomState(roomId) {
         players: [],
         currentPlayer: 'player1',
         currentTurn: 'player1',
-        timeoutId: null
+        timeoutId: null,
+        playerRoles: {} // Map to store socket.id to player role
     };
     // Any other initial state settings as needed
 }
@@ -79,9 +80,10 @@ io.on('connection', (socket) => {
             socket.emit('roomFull', `Room ${room} is already full`);
         }
         if (!roomStates[room]) {
-            roomStates[room] = { players: [socket.id], currentPlayer: 'player1', currentTurn: 'player1' };
+            roomStates[room] = { players: [socket.id], currentPlayer: 'player1', currentTurn: 'player1', playerRoles: {} };
         } else {
             roomStates[room].players.push(socket.id);
+            roomStates[room].playerRoles[socket.id] = playerRole; // Map socket.id to player role
             // Notify both players that the game can start when the second player joins
             if (roomStates[room].players.length === 2) {
                 socket.emit('opponentConnected');
@@ -136,6 +138,7 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         console.log(`User with socket ID ${socket.id} disconnected`);
         for (const [room, state] of Object.entries(roomStates)) {
+            const playerRole = state.playerRoles[socket.id]; // Get player's role based on socket.id
             const playerIndex = state.players.indexOf(socket.id);
             if (playerIndex !== -1) {
                 state.players.splice(playerIndex, 1);
@@ -147,7 +150,14 @@ io.on('connection', (socket) => {
                     resetRoomState(room);
                     console.log(`${room} reset`);
                 }
-
+                
+                // Determine if the disconnected player was player 1 or player 2
+            if (playerRole === 'player1') {
+                console.log(`Player 1 with socket ID ${socket.id} disconnected`);
+            } else if (playerRole === 'player2') {
+                console.log(`Player 2 with socket ID ${socket.id} disconnected`);
+            }
+            
                 break; // Stop searching once the player's room is found
             }
         }
