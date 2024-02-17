@@ -51,7 +51,6 @@ const io = new socketIo.Server(httpServer, {
 io.on('connection', (socket) => {
     if (socket.recovered) {
         console.log(`User with socket ID ${socket.id} reconnected to ${socket.rooms}`);
-        socket.to(socket.rooms).emit('opponentConnected');
         // check for recovery, if recovery was successful: socket.id, socket.rooms and socket.data were restored
     } else {
         // run initial room join fuctions
@@ -64,13 +63,13 @@ io.on('connection', (socket) => {
 
         socket.on('joinRoom', (room) => {
             const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
-            console.log(`Room: ${room}, Room size: ${roomSize}`);
             if (!roomStates[room]) {
                 roomStates[room] = { players: [socket.id], currentPlayer: 'player1', currentTurn: 'player1', rejoinAssignment: null, playerRoles: { [socket.id]: playerRole }
             };
             }            
             if (roomSize < 2) {
                 socket.join(room);
+                console.log(`Room: ${room}, Room size: ${roomSize}`);
                 // Handle joining room logic here
                 // Assign player role
                 //if roomStates[roomId].rejoinAssignment isn't null, set as playerRole
