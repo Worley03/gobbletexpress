@@ -7,15 +7,6 @@ const port = process.env.PORT || 3000;
 //let currentTurn = 'player1'; // Initialize the turn to Player 1
 let roomStates = {}; // Keeps track of the state of each room
 
-function resetRoomState(roomId) {
-    roomStates[roomId] = {
-        players: [],
-        currentPlayer: 'player1',
-        currentTurn: 'player1',
-        timeoutId: null
-    };
-}
-
 function resetInactivityTimer(roomId) {
     // Clear existing timer
     if (roomStates[roomId]?.timeoutId) {
@@ -152,6 +143,15 @@ io.on('connection', (socket) => {
         }
     });
 });
+
+function resetRoomState(roomId) {
+    roomStates[roomId] = {
+        players: [],
+        currentPlayer: 'player1',
+        currentTurn: 'player1',
+        timeoutId: null
+    };
+}
 
 // Start the HTTP server, not the Express app
 httpServer.listen(port, () => {
