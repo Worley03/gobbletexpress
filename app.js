@@ -72,6 +72,7 @@ io.on('connection', (socket) => {
             // Handle joining room logic here
             // Assign player role
             let playerRole = roomSize === 0 ? 'player1' : 'player2';
+            roomStates[room].playerRoles[socket.id] = playerRole; // Map socket.id to player role
             console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
             socket.emit('roleAssigned', playerRole);
 
