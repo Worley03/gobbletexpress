@@ -65,41 +65,38 @@ io.on('connection', (socket) => {
         socket.on('joinRoom', (room) => {
             const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
             if (!roomStates[room]) {
-                roomStates[room] = { players: [socket.id], 
-                    playerRoles: { [socket.id]: playerRole }, 
-                    currentPlayer: 'player1', 
-                    currentTurn: 'player1', 
-                    rejoinAssignment: null
-                };
+                roomStates[room] = { players: [socket.id], playerRoles: { [socket.id]: playerRole }, currentPlayer: 'player1', currentTurn: 'player1' };
+            } else {
+                roomStates[room].players.push(socket.id);
+                roomStates[room].playerRoles[socket.id] = playerRole;  // Map the socket ID to the player role
+                // Notify both players that the game can start when the second player joins
+                if (roomStates[room].players.length === 2) {
+                    socket.emit('opponentConnected');
+                    socket.to(room).emit('opponentConnected');
+                    io.to(room).emit('gameStart');
+                    resetInactivityTimer(room);  // Reset inactivity timer
+                }
             }
             if (roomSize < 2) {
                 socket.join(room);
+                // Handle joining room logic here
+                // Assign player role
                 //if roomStates[roomId].rejoinAssignment isn't null, set as playerRole
                 // Check if the room has a rejoinAssignment
-                if (!roomStates[room].rejoinAssignment) {
-                    let playerRole = roomSize === 0 ? 'player1' : 'player2';
-                    console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
-                    socket.emit('roleAssigned', playerRole);
-                } else {
+                if (roomStates[room].rejoinAssignment) {
                     // If roomStates[roomId].rejoinAssignment isn't null, set as playerRole
                     var playerRole = roomStates[room].rejoinAssignment;
                     console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
-                    socket.emit('roleAssigned', playerRole); 
+                    socket.emit('roleAssigned', playerRole);    
+                } else {
+                let playerRole = roomSize === 0 ? 'player1' : 'player2';
+                console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
+                socket.emit('roleAssigned', playerRole);
                 }
             } else {
                 // Send a message back to the client if the room is full
                 socket.emit('roomFull', `Room ${room} is already full`);
             }
-            roomStates[room].players.push(socket.id);
-            roomStates[room].playerRoles[socket.id] = playerRole;  // Map the socket ID to the player role
-            // Notify both players that the game can start when the second player joins
-            if (roomStates[room].players.length === 2) {
-                socket.emit('opponentConnected');
-                socket.to(room).emit('opponentConnected');
-                io.to(room).emit('gameStart');
-                resetInactivityTimer(room);  // Reset inactivity timer
-            }
-            
         });
     }
 
