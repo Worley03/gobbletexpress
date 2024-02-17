@@ -6,6 +6,9 @@ const port = process.env.PORT || 3000;
 
 //let currentTurn = 'player1'; // Initialize the turn to Player 1
 let roomStates = {}; // Keeps track of the state of each room
+let playerRoles = {}; // Initialize an empty object
+let lastPlayerLeft = {}; // Declare in a higher scope
+
 
 function resetRoomState(roomId) {
     roomStates[roomId] = {
@@ -15,6 +18,10 @@ function resetRoomState(roomId) {
         timeoutId: null
     };
     // Any other initial state settings as needed
+}
+
+function resetLastLeft(roomId) {
+    delete lastPlayerLeft[roomId]
 }
 
 function resetInactivityTimer(roomId) {
@@ -28,6 +35,7 @@ function resetInactivityTimer(roomId) {
     roomStates[roomId].timeoutId = setTimeout(() => {
         console.log(`Room ${roomId} has been reset due to inactivity.`);
         resetRoomState(roomId);
+        resetLastLeft(roomId);
         // Optionally, notify players in the room about the reset
     }, 300000);  // 5 minutes = 300000 milliseconds
 }
@@ -68,11 +76,18 @@ io.on('connection', (socket) => {
 
         if (roomSize < 2) {
             socket.join(room);
-            // Handle joining room logic here
-            // Assign player role
-            let playerRole = roomSize === 0 ? 'player1' : 'player2';
+            let playerRole;
+    
+            if (!lastPlayerLeft[room]) {
+                playerRole = roomSize === 0 ? 'player1' : 'player2';
+            } else {
+                playerRole = lastPlayerLeft[room];
+                delete lastPlayerLeft[room]; // Reset lastPlayerLeft for the room
+            }
+    
             console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
             socket.emit('roleAssigned', playerRole);
+            playerRoles[socket.id] = playerRole; 
 
         } else {
             // Send a message back to the client if the room is full
@@ -119,6 +134,8 @@ io.on('connection', (socket) => {
             const index = roomStates[room].players.indexOf(socket.id);
             if (index !== -1) {
                 roomStates[room].players.splice(index, 1);
+                lastPlayerLeft[room] = playerRoles[socket.id]; // Update lastPlayerLeft for the room
+                delete playerRoles[socket.id]; 
             }
             if (roomStates[room].players.length === 1) {
                 // Notify the remaining player that their opponent has left
@@ -127,6 +144,7 @@ io.on('connection', (socket) => {
                 // Reset the room if it's empty or under certain conditions
             else if (roomStates[room].players.length === 0) {
                 resetRoomState(room);
+                resetLastLeft(room);
                 console.log(`${room} reset`);
             }
         }
@@ -139,12 +157,15 @@ io.on('connection', (socket) => {
             const playerIndex = state.players.indexOf(socket.id);
             if (playerIndex !== -1) {
                 state.players.splice(playerIndex, 1);
+                lastPlayerLeft[room] = playerRoles[socket.id]; // Update lastPlayerLeft for the room
+                delete playerRoles[socket.id];
                 // Reset or update the room as necessary
                 if (state.players.length === 1) {
                     // Notify the remaining player that their opponent has disconnected
                     io.to(state.players[0]).emit('opponentDisconnected');
                 } else if (state.players.length === 0) {
                     resetRoomState(room);
+                    resetLastLeft(room);
                     console.log(`${room} reset`);
                 }
 
