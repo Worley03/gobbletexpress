@@ -54,7 +54,9 @@ io.on('connection', (socket) => {
 
     socket.on('joinRoom', (room) => {
         const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
-
+        if (!roomStates[room]) {
+            roomStates[room] = { players: [socket.id], currentPlayer: 'player1', currentTurn: 'player1' };
+        }
         if (roomSize < 2) {
             socket.join(room);
             // Handle joining room logic here
@@ -63,13 +65,12 @@ io.on('connection', (socket) => {
             console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
             socket.emit('roleAssigned', playerRole);
 
-        } else {
+        } 
+        if (roomSize === 2) {
             // Send a message back to the client if the room is full
             socket.emit('roomFull', `Room ${room} is already full`);
         }
-        if (!roomStates[room]) {
-            roomStates[room] = { players: [socket.id], currentPlayer: 'player1', currentTurn: 'player1' };
-        } else {
+        if (roomStates[room]) {
             roomStates[room].players.push(socket.id);
             // Notify both players that the game can start when the second player joins
             if (roomStates[room].players.length === 2) {
