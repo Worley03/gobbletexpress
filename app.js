@@ -64,8 +64,9 @@ io.on('connection', (socket) => {
 
         socket.on('joinRoom', (room) => {
             const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
+            console.log(`Room: ${room}, Room size: ${roomSize}`);
             if (!roomStates[room]) {
-                roomStates[room] = { players: [socket.id], playerRoles: { [socket.id]: playerRole }, currentPlayer: 'player1', currentTurn: 'player1', rejoinAssignment: null
+                roomStates[room] = { players: [socket.id], currentPlayer: 'player1', currentTurn: 'player1', rejoinAssignment: null, playerRoles: { [socket.id]: playerRole }
             };
             }            
             if (roomSize < 2) {
@@ -77,7 +78,7 @@ io.on('connection', (socket) => {
                 if (roomStates[room].rejoinAssignment) {
                     // If roomStates[roomId].rejoinAssignment isn't null, set as playerRole
                     var playerRole = roomStates[room].rejoinAssignment;
-                    console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
+                    console.log(`User with socket ID ${socket.id} rejoined room: ${room} as ${playerRole}`);
                     socket.emit('roleAssigned', playerRole);    
                 } else {
                 let playerRole = roomSize === 0 ? 'player1' : 'player2';
