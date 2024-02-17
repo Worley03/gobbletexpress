@@ -7,22 +7,11 @@ const port = process.env.PORT || 3000;
 //let currentTurn = 'player1'; // Initialize the turn to Player 1
 let roomStates = {}; // Keeps track of the state of each room
 
-function resetRoomState(roomId) {
-    roomStates[roomId] = {
-        players: [],
-        playerRoles: {},  // New field to map socket IDs to player roles
-        currentPlayer: 'player1',
-        currentTurn: 'player1',
-        timeoutId: null,
-        rejoinAssignment: null
-    };
-    // Any other initial state settings as needed
-}
-
 function resetInactivityTimer(roomId) {
     // Clear existing timer
     if (roomStates[roomId]?.timeoutId) {
         clearTimeout(roomStates[roomId].timeoutId);
+        console.log(`Room ${roomId} inactivity timer has been reset.`);
     }
 
     // Set a new timer
@@ -60,48 +49,37 @@ io.on('connection', (socket) => {
             const isFull = roomSize >= 2;
             callback(isFull);
         });
+    }    
 
-        socket.on('joinRoom', (room) => {
-            const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
-            if (!roomStates[room]) {
-                roomStates[room] = { players: [socket.id], currentPlayer: 'player1', currentTurn: 'player1', rejoinAssignment: null, playerRoles: { [socket.id]: playerRole }
-            };
-            }            
-            if (roomSize < 2) {
-                socket.join(room);
-                console.log(`Room: ${room}, Room size: ${roomSize}`);
-                // Handle joining room logic here
-                // Assign player role
-                //if roomStates[roomId].rejoinAssignment isn't null, set as playerRole
-                // Check if the room has a rejoinAssignment
-                if (roomStates[room].rejoinAssignment) {
-                    // If roomStates[roomId].rejoinAssignment isn't null, set as playerRole
-                    var playerRole = roomStates[room].rejoinAssignment;
-                    console.log(`User with socket ID ${socket.id} rejoined room: ${room} as ${playerRole}`);
-                    socket.emit('roleAssigned', playerRole);    
-                } else {
-                let playerRole = roomSize === 0 ? 'player1' : 'player2';
-                console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
-                socket.emit('roleAssigned', playerRole);
-                }
-            } else {
-                // Send a message back to the client if the room is full
-                socket.emit('roomFull', `Room ${room} is already full`);
-            }
-            if (roomStates[room]){
-                roomStates[room].players.push(socket.id);
-                roomStates[room].playerRoles[socket.id] = playerRole;  // Map the socket ID to the player role
-                // Notify both players that the game can start when the second player joins
-                if (roomStates[room].players.length === 10) {
-                    socket.emit('opponentConnected');
-                    socket.to(room).emit('opponentConnected');
-                    io.to(room).emit('gameStart');
-                    resetInactivityTimer(room);  // Reset inactivity timer
-                }
-            }
-        });
-    }
 
+    socket.on('joinRoom', (room) => {
+        const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
+
+        if (roomSize < 2) {
+            socket.join(room);
+            // Handle joining room logic here
+            // Assign player role
+            let playerRole = roomSize === 0 ? 'player1' : 'player2';
+            console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
+            socket.emit('roleAssigned', playerRole);
+
+        } else {
+            // Send a message back to the client if the room is full
+            socket.emit('roomFull', `Room ${room} is already full`);
+        }
+        if (!roomStates[room]) {
+            roomStates[room] = { players: [socket.id], currentPlayer: 'player1', currentTurn: 'player1' };
+        } else {
+            roomStates[room].players.push(socket.id);
+            // Notify both players that the game can start when the second player joins
+            if (roomStates[room].players.length === 2) {
+                socket.emit('opponentConnected');
+                socket.to(room).emit('opponentConnected');
+                io.to(room).emit('gameStart');
+                resetInactivityTimer(room);  // Reset inactivity timer
+            }
+        }
+    });
 
     socket.on('makeMove', (data) => {
         const roomState = roomStates[data.room];
@@ -115,6 +93,7 @@ io.on('connection', (socket) => {
             });
         }
         resetInactivityTimer(data.room);  // Reset inactivity timer
+        console.log(`Room ${data.room}, ${data.newGridCells}`);
     });
 
     socket.on('leaveRoom', (room) => {
@@ -153,12 +132,7 @@ io.on('connection', (socket) => {
                 if (state.players.length === 1) {
                     // Notify the remaining player that their opponent has disconnected
                     io.to(state.players[0]).emit('opponentDisconnected');
-                    // Set rejoinAssignment to the role of the player who just disconnected
-                    state.rejoinAssignment = state.playerRoles[socket.id];
-                    console.log(`Rejoin Assignment ${state.rejoinAssignment}`);
-                    delete state.playerRoles[socket.id];  // Remove the player's socket ID from the mapping
-                } 
-                else if (state.players.length === 0) {
+                } else if (state.players.length === 0) {
                     resetRoomState(room);
                     console.log(`${room} reset`);
                 }
@@ -166,8 +140,6 @@ io.on('connection', (socket) => {
                 break; // Stop searching once the player's room is found
             }
         }
-        // if player who left was assigned "player 1", set roomStates[roomId].rejoinAssignment to 'player 1"
-         // if player who left was assigned "player 2", set roomStates[roomId].rejoinAssignment to 'player 2"
     });
 });
 
