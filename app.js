@@ -15,7 +15,8 @@ function resetRoomState(roomId) {
         players: [],
         currentPlayer: 'player1',
         currentTurn: 'player1',
-        timeoutId: null
+        timeoutId: null,
+        currentBoard: [] // Initialize currentBoard as an empty array
     };
     // Any other initial state settings as needed
 }
@@ -97,6 +98,12 @@ io.on('connection', (socket) => {
             roomStates[room] = { players: [socket.id], currentPlayer: 'player1', currentTurn: 'player1' };
         } else {
             roomStates[room].players.push(socket.id);
+            if (roomStates[room] && roomStates[room].currentBoard) {
+                io.to(room).emit('moveMade', {
+                    newGridCells: roomStates[room].currentBoard,
+                    nextTurn: roomStates[room].currentTurn
+                });
+            }
             // Notify both players that the game can start when the second player joins
             if (roomStates[room].players.length === 2) {
                 socket.emit('opponentConnected');
@@ -113,6 +120,7 @@ io.on('connection', (socket) => {
         if (socket.id === roomState.players[roomState.currentTurn === 'player1' ? 0 : 1]) {
             roomState.currentTurn = roomState.currentTurn === 'player1' ? 'player2' : 'player1';
             roomState.currentPlayer = roomState.currentTurn;
+            roomState.currentBoard = data.newGridCells; // Save newGridCells as currentBoard
             io.to(data.room).emit('moveMade', {
                 newGridCells: data.newGridCells,
                 nextTurn: roomState.currentTurn
