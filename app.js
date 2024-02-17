@@ -65,18 +65,9 @@ io.on('connection', (socket) => {
         socket.on('joinRoom', (room) => {
             const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
             if (!roomStates[room]) {
-                roomStates[room] = { players: [socket.id], playerRoles: { [socket.id]: playerRole }, currentPlayer: 'player1', currentTurn: 'player1' };
-            } else {
-                roomStates[room].players.push(socket.id);
-                roomStates[room].playerRoles[socket.id] = playerRole;  // Map the socket ID to the player role
-                // Notify both players that the game can start when the second player joins
-                if (roomStates[room].players.length === 2) {
-                    socket.emit('opponentConnected');
-                    socket.to(room).emit('opponentConnected');
-                    io.to(room).emit('gameStart');
-                    resetInactivityTimer(room);  // Reset inactivity timer
-                }
-            }
+                roomStates[room] = { players: [socket.id], playerRoles: { [socket.id]: playerRole }, currentPlayer: 'player1', currentTurn: 'player1', rejoinAssignment: null
+            };
+            }            
             if (roomSize < 2) {
                 socket.join(room);
                 // Handle joining room logic here
@@ -96,6 +87,17 @@ io.on('connection', (socket) => {
             } else {
                 // Send a message back to the client if the room is full
                 socket.emit('roomFull', `Room ${room} is already full`);
+            }
+            if (roomStates[room]){
+                roomStates[room].players.push(socket.id);
+                roomStates[room].playerRoles[socket.id] = playerRole;  // Map the socket ID to the player role
+                // Notify both players that the game can start when the second player joins
+                if (roomStates[room].players.length === 2) {
+                    socket.emit('opponentConnected');
+                    socket.to(room).emit('opponentConnected');
+                    io.to(room).emit('gameStart');
+                    resetInactivityTimer(room);  // Reset inactivity timer
+                }
             }
         });
     }
@@ -153,6 +155,7 @@ io.on('connection', (socket) => {
                     io.to(state.players[0]).emit('opponentDisconnected');
                     // Set rejoinAssignment to the role of the player who just disconnected
                     state.rejoinAssignment = state.playerRoles[socket.id];
+                    console.log(`Rejoin Assignment ${state.rejoinAssignment}`);
                     delete state.playerRoles[socket.id];  // Remove the player's socket ID from the mapping
                 } 
                 else if (state.players.length === 0) {
