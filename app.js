@@ -13,7 +13,6 @@ let lastPlayerLeft = {}; // Declare in a higher scope
 function resetRoomState(roomId) {
     roomStates[roomId] = {
         players: [],
-        currentPlayer: 'player1',
         currentTurn: 'player1',
         timeoutId: null,
         currentBoard: [] // Initialize currentBoard as an empty array
@@ -95,7 +94,7 @@ io.on('connection', (socket) => {
             socket.emit('roomFull', `Room ${room} is already full`);
         }
         if (!roomStates[room]) {
-            roomStates[room] = { players: [socket.id], currentPlayer: 'player1', currentTurn: 'player1' };
+            roomStates[room] = { players: [socket.id], currentTurn: 'player1' };
         } else {
             roomStates[room].players.push(socket.id);
             if (roomStates[room] && roomStates[room].currentBoard) {
@@ -119,7 +118,6 @@ io.on('connection', (socket) => {
 
         if (socket.id === roomState.players[roomState.currentTurn === 'player1' ? 0 : 1]) {
             roomState.currentTurn = roomState.currentTurn === 'player1' ? 'player2' : 'player1';
-            roomState.currentPlayer = roomState.currentTurn;
             roomState.currentBoard = data.newGridCells; // Save newGridCells as currentBoard
             io.to(data.room).emit('moveMade', {
                 newGridCells: data.newGridCells,
