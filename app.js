@@ -17,7 +17,7 @@ function resetRoomState(roomId) {
         timeoutId: null,
         currentBoard: [] // Initialize currentBoard as an empty array
     };
-    console.log(`${room} room reset`);
+    console.log(`${roomId} room reset`);
 
     // Any other initial state settings as needed
 }
