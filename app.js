@@ -72,7 +72,6 @@ io.on('connection', (socket) => {
             // Handle joining room logic here
             // Assign player role
             let playerRole = roomSize === 0 ? 'player1' : 'player2';
-            roomStates[room].playerRoles[socket.id] = playerRole; // Map socket.id to player role
             console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
             socket.emit('roleAssigned', playerRole);
 
@@ -82,9 +81,12 @@ io.on('connection', (socket) => {
         }
         if (!roomStates[room]) {
             roomStates[room] = { players: [socket.id], currentPlayer: 'player1', currentTurn: 'player1', playerRoles: {} };
+            roomStates[room].playerRoles[socket.id] = playerRole; // Map socket.id to player role
+
         } else {
             roomStates[room].players.push(socket.id);
             roomStates[room].playerRoles[socket.id] = playerRole; // Map socket.id to player role
+
             // Notify both players that the game can start when the second player joins
             if (roomStates[room].players.length === 2) {
                 socket.emit('opponentConnected');
