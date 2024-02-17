@@ -28,28 +28,16 @@ const io = new socketIo.Server(httpServer, {
     cors: {
         origin: "*", // Your client's URL
         methods: ["GET", "POST"]
-    },
-    connectionStateRecovery: {
-        // the backup duration of the sessions and the packets
-        maxDisconnectionDuration: 2 * 60 * 1000,
-        // whether to skip middlewares upon successful recovery
-        skipMiddlewares: true,
-      }
+    }
 });
 
 io.on('connection', (socket) => {
-    if (socket.recovered) {
-        console.log(`User with socket ID ${socket.id} reconnected to ${socket.rooms}`);
-        // check for recovery, if recovery was successful: socket.id, socket.rooms and socket.data were restored
-    } else {
-        // run initial room join fuctions
-        console.log(`User with socket ID ${socket.id} connected`);
-        socket.on('checkRoom', (room, callback) => {
-            const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
-            const isFull = roomSize >= 2;
-            callback(isFull);
-        });
-    }    
+    console.log(`User with socket ID ${socket.id} connected`);
+    socket.on('checkRoom', (room, callback) => {
+        const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
+        const isFull = roomSize >= 2;
+        callback(isFull);
+    });
 
 
     socket.on('joinRoom', (room) => {
@@ -63,15 +51,13 @@ io.on('connection', (socket) => {
             console.log(`User with socket ID ${socket.id} joined room: ${room} as ${playerRole}`);
             socket.emit('roleAssigned', playerRole);
 
-        } 
-        if (roomSize === 2) {
+        } else {
             // Send a message back to the client if the room is full
             socket.emit('roomFull', `Room ${room} is already full`);
         }
         if (!roomStates[room]) {
             roomStates[room] = { players: [socket.id], currentPlayer: 'player1', currentTurn: 'player1' };
-        }
-        if (roomStates[room]) {
+        } else {
             roomStates[room].players.push(socket.id);
             // Notify both players that the game can start when the second player joins
             if (roomStates[room].players.length === 2) {
