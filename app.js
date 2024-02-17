@@ -115,6 +115,7 @@ io.on('connection', (socket) => {
                 socket.to(room).emit('opponentConnected');
                 io.to(room).emit('gameStart');
                 resetInactivityTimer(room);  // Reset inactivity timer
+                console.log(`Two players connected, game start room: ${room}`);
             }
         }
     });
@@ -122,7 +123,7 @@ io.on('connection', (socket) => {
     socket.on('makeMove', (data) => {
         const roomState = roomStates[data.room];
 
-        if (socket.id === roomState.players[roomState.currentTurn === 'player1' ? 0 : 1]) {
+        if (roomState.players[roomState.currentTurn === 'player1' ? 0 : 1]) {
             roomState.currentTurn = roomState.currentTurn === 'player1' ? 'player2' : 'player1';
             roomState.currentBoard = data.newGridCells; // Save newGridCells as currentBoard
             io.to(data.room).emit('moveMade', {
