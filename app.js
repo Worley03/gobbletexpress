@@ -7,6 +7,16 @@ const port = process.env.PORT || 3000;
 //let currentTurn = 'player1'; // Initialize the turn to Player 1
 let roomStates = {}; // Keeps track of the state of each room
 
+function resetRoomState(roomId) {
+    roomStates[roomId] = {
+        players: [],
+        currentPlayer: 'player1',
+        currentTurn: 'player1',
+        timeoutId: null
+    };
+}
+
+
 function resetInactivityTimer(roomId) {
     // Clear existing timer
     if (roomStates[roomId]?.timeoutId) {
@@ -54,9 +64,7 @@ io.on('connection', (socket) => {
 
     socket.on('joinRoom', (room) => {
         const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
-        if (!roomStates[room]) {
-            roomStates[room] = { players: [socket.id], currentPlayer: 'player1', currentTurn: 'player1' };
-        }
+
         if (roomSize < 2) {
             socket.join(room);
             // Handle joining room logic here
@@ -69,6 +77,9 @@ io.on('connection', (socket) => {
         if (roomSize === 2) {
             // Send a message back to the client if the room is full
             socket.emit('roomFull', `Room ${room} is already full`);
+        }
+        if (!roomStates[room]) {
+            roomStates[room] = { players: [socket.id], currentPlayer: 'player1', currentTurn: 'player1' };
         }
         if (roomStates[room]) {
             roomStates[room].players.push(socket.id);
@@ -143,15 +154,6 @@ io.on('connection', (socket) => {
         }
     });
 });
-
-function resetRoomState(roomId) {
-    roomStates[roomId] = {
-        players: [],
-        currentPlayer: 'player1',
-        currentTurn: 'player1',
-        timeoutId: null
-    };
-}
 
 // Start the HTTP server, not the Express app
 httpServer.listen(port, () => {
