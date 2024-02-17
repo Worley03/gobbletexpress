@@ -64,17 +64,16 @@ io.on('connection', (socket) => {
 
         socket.on('joinRoom', (room) => {
             const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
-        
+            if (!roomStates[room]) {
+                roomStates[room] = { players: [socket.id], 
+                    playerRoles: { [socket.id]: playerRole }, 
+                    currentPlayer: 'player1', 
+                    currentTurn: 'player1', 
+                    rejoinAssignment: null
+                };
+            }
             if (roomSize < 2) {
                 socket.join(room);
-                if (!roomStates[room]) {
-                    roomStates[room] = { players: [socket.id], 
-                        playerRoles: { [socket.id]: playerRole }, 
-                        currentPlayer: 'player1', 
-                        currentTurn: 'player1', 
-                        rejoinAssignment: null
-                    };
-                }
                 //if roomStates[roomId].rejoinAssignment isn't null, set as playerRole
                 // Check if the room has a rejoinAssignment
                 if (!roomStates[room].rejoinAssignment) {
