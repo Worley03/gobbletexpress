@@ -15,7 +15,6 @@ function resetRoomState(roomId) {
         players: [],
         currentTurn: 'player1',
         timeoutId: null,
-        currentBoard: [] // Initialize currentBoard as an empty array
     };
     console.log(`${roomId} room reset`);
 
@@ -122,15 +121,13 @@ io.on('connection', (socket) => {
 
     socket.on('makeMove', (data) => {
         const roomState = roomStates[data.room];
-
-        if (roomState.players[roomState.currentTurn === 'player1' ? 0 : 1]) {
-            roomState.currentTurn = roomState.currentTurn === 'player1' ? 'player2' : 'player1';
-            roomState.currentBoard = data.newGridCells; // Save newGridCells as currentBoard
-            io.to(data.room).emit('moveMade', {
-                newGridCells: data.newGridCells,
-                nextTurn: roomState.currentTurn
-            });
-        }
+        roomState.currentTurn = roomState.currentTurn === 'player1' ? 'player2' : 'player1';
+        roomState.currentBoard = data.newGridCells; // Save newGridCells as currentBoard
+        io.to(data.room).emit('moveMade', {
+            newGridCells: data.newGridCells,
+            nextTurn: roomState.currentTurn
+        });
+    
         resetInactivityTimer(data.room);  // Reset inactivity timer
         console.log(`Room ${data.room}, ${data.newGridCells}`);
     });
