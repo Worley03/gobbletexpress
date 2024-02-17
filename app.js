@@ -15,7 +15,6 @@ function resetRoomState(roomId) {
         players: [],
         currentTurn: 'player1',
         timeoutId: null,
-        currentBoard: [] // Initialize currentBoard as an empty array
     };
     console.log(`${roomId} room reset`);
 
