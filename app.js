@@ -17,11 +17,15 @@ function resetRoomState(roomId) {
         timeoutId: null,
         currentBoard: [] // Initialize currentBoard as an empty array
     };
+    console.log(`${room} room reset`);
+
     // Any other initial state settings as needed
 }
 
 function resetLastLeft(roomId) {
     delete lastPlayerLeft[roomId]
+    console.log(`${roomId} last left reset`);
+
 }
 
 function resetInactivityTimer(roomId) {
@@ -91,7 +95,7 @@ io.on('connection', (socket) => {
             playerRoles[socket.id] = playerRole; 
 
         } 
-        if (roomSize = 2) {
+        if (roomSize == 2) {
             // Send a message back to the client if the room is full
             socket.emit('roomFull', `Room ${room} is already full`);
         }
@@ -174,7 +178,6 @@ io.on('connection', (socket) => {
                 } else if (state.players.length === 0) {
                     resetRoomState(room);
                     resetLastLeft(room);
-                    console.log(`${room} reset`);
                 }
 
                 break; // Stop searching once the player's room is found
