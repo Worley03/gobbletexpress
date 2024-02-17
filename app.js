@@ -92,7 +92,7 @@ io.on('connection', (socket) => {
                 roomStates[room].players.push(socket.id);
                 roomStates[room].playerRoles[socket.id] = playerRole;  // Map the socket ID to the player role
                 // Notify both players that the game can start when the second player joins
-                if (roomStates[room].players.length === 2) {
+                if (roomStates[room].players.length === 10) {
                     socket.emit('opponentConnected');
                     socket.to(room).emit('opponentConnected');
                     io.to(room).emit('gameStart');
