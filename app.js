@@ -80,7 +80,8 @@ io.on('connection', (socket) => {
     
             if (!lastPlayerLeft[room]) {
                 playerRole = roomSize === 0 ? 'player1' : 'player2';
-            } else {
+            }
+            if (lastPlayerLeft[room] && roomSize == 1) {
                 playerRole = lastPlayerLeft[room];
                 delete lastPlayerLeft[room]; // Reset lastPlayerLeft for the room
             }
@@ -89,7 +90,8 @@ io.on('connection', (socket) => {
             socket.emit('roleAssigned', playerRole);
             playerRoles[socket.id] = playerRole; 
 
-        } else {
+        } 
+        if (roomSize = 2) {
             // Send a message back to the client if the room is full
             socket.emit('roomFull', `Room ${room} is already full`);
         }
