@@ -60,9 +60,13 @@ const io = new socketIo.Server(httpServer, {
 
 io.on('connection', (socket) => {
     if (socket.recovered) {
-        console.log(`User with socket ID ${socket.id} reconnected to ${socket.rooms}`);
-        socket.to(socket.rooms).emit('opponentConnected');
-        // check for recovery, if recovery was successful: socket.id, socket.rooms and socket.data were restored
+        if (socket.rooms.size > 1) {
+            //socket.rooms is a Set, and must be filtered to accurately extract the room code.
+            const rooms = Array.from(socket.rooms).filter(room => room !== socket.id);
+            console.log(`User with socket ID ${socket.id} reconnected to ${rooms[0]}`);
+            // Emit the event to the recovered room
+            io.to(rooms[0]).emit('opponentConnected');
+        }  
     } else {
         // run initial room join fuctions
         console.log(`User with socket ID ${socket.id} connected`);
@@ -110,8 +114,7 @@ io.on('connection', (socket) => {
             }
             // Notify both players that the game can start when the second player joins
             if (roomStates[room].players.length === 2) {
-                socket.emit('opponentConnected');
-                socket.to(room).emit('opponentConnected');
+                io.to(room).emit('opponentConnected');
                 io.to(room).emit('gameStart');
                 resetInactivityTimer(room);  // Reset inactivity timer
                 console.log(`Two players connected, game start room: ${room}`);
