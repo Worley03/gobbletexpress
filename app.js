@@ -27,21 +27,21 @@ function resetLastLeft(roomId) {
 
 }
 
-function resetInactivityTimer(roomId) {
-    // Clear existing timer
-    if (roomStates[roomId]?.timeoutId) {
-        clearTimeout(roomStates[roomId].timeoutId);
-        console.log(`Room ${roomId} inactivity timer has been reset.`);
-    }
+// function resetInactivityTimer(roomId) {
+//     // Clear existing timer
+//     if (roomStates[roomId]?.timeoutId) {
+//         clearTimeout(roomStates[roomId].timeoutId);
+//         console.log(`Room ${roomId} inactivity timer has been reset.`);
+//     }
 
-    // Set a new timer
-    roomStates[roomId].timeoutId = setTimeout(() => {
-        console.log(`Room ${roomId} has been reset due to inactivity.`);
-        resetRoomState(roomId);
-        resetLastLeft(roomId);
-        // Optionally, notify players in the room about the reset
-    }, 300000);  // 5 minutes = 300000 milliseconds
-}
+//     // Set a new timer
+//     roomStates[roomId].timeoutId = setTimeout(() => {
+//         console.log(`Room ${roomId} has been reset due to inactivity.`);
+//         resetRoomState(roomId);
+//         resetLastLeft(roomId);
+//         // Optionally, notify players in the room about the reset
+//     }, 300000);  // 5 minutes = 300000 milliseconds
+// }
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -116,7 +116,7 @@ io.on('connection', (socket) => {
             if (roomStates[room].players.length === 2) {
                 io.to(room).emit('opponentConnected');
                 io.to(room).emit('gameStart');
-                resetInactivityTimer(room);  // Reset inactivity timer
+                //resetInactivityTimer(room);  // Reset inactivity timer
                 console.log(`Two players connected, game start room: ${room}`);
             }
         }
@@ -134,7 +134,7 @@ io.on('connection', (socket) => {
                 nextTurn: roomState.currentTurn
             });
         }
-        resetInactivityTimer(data.room);  // Reset inactivity timer
+        //resetInactivityTimer(data.room);  // Reset inactivity timer
         console.log(`Room ${data.room}, ${data.newGridCells}`);
     });
 
