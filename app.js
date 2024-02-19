@@ -178,7 +178,7 @@ io.on('connection', (socket) => {
                 // Reset or update the room as necessary
                 if (state.players.length === 1) {
                     // Notify the remaining player that their opponent has disconnected
-                    io.to(state.players[0]).emit('opponentDisconnected');
+                    io.to(room).emit('opponentDisconnected');
                 } else if (state.players.length === 0) {
                     resetRoomState(room);
                     resetLastLeft(room);
