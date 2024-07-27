@@ -58,6 +58,11 @@ const io = new socketIo.Server(httpServer, {
       }
 });
 
+// Add a new endpoint to check the server status
+app.get('/status', (req, res) => {
+    res.json({ status: 'Server is running' });
+});
+
 io.on('connection', (socket) => {
     if (socket.recovered) {
         if (socket.rooms.size > 1) {
