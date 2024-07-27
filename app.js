@@ -1,10 +1,6 @@
 import express from 'express';
 import http from 'http';
 import * as socketIo from 'socket.io';
-const cors = require('cors');
-
-app.use(cors());
-
 
 const port = process.env.PORT || 3000;
 
