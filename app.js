@@ -48,7 +48,7 @@ const httpServer = http.createServer(app);
 const io = new socketIo.Server(httpServer, {
     cors: {
         origin: "*", // Your client's URL
-        methods: ["GET", "POST"]
+        methods: ["POST"]
     },
     connectionStateRecovery: {
         // the backup duration of the sessions and the packets
