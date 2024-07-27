@@ -1,6 +1,10 @@
 import express from 'express';
 import http from 'http';
 import * as socketIo from 'socket.io';
+const cors = require('cors');
+
+app.use(cors());
+
 
 const port = process.env.PORT || 3000;
 
@@ -48,7 +52,7 @@ const httpServer = http.createServer(app);
 const io = new socketIo.Server(httpServer, {
     cors: {
         origin: "*", // Your client's URL
-        methods: ["POST"]
+        methods: ["GET", "POST"]
     },
     connectionStateRecovery: {
         // the backup duration of the sessions and the packets
