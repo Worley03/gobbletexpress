@@ -47,7 +47,7 @@ const app = express();
 const httpServer = http.createServer(app);
 const io = new socketIo.Server(httpServer, {
     cors: {
-        origin: "https://worley03.github.io/", // Your client's URL
+        origin: "*", // Your client's URL
         methods: ["GET", "POST"]
     },
     connectionStateRecovery: {
