@@ -190,8 +190,13 @@ io.on('connection', (socket) => {
                     // Notify the remaining player that their opponent has disconnected
                     io.to(room).emit('opponentDisconnected');
                 } else if (state.players.length === 0) {
-                    resetRoomState(room);
-                    resetLastLeft(room);
+                    setTimeout(() => {
+                        if (state.players.length === 0) {
+                           resetRoomState(room);
+                           resetLastLeft(room);
+                           console.log(`${room} reset`);
+                          }
+                  }, 3000); // 3 seconds delay
                 }
 
                 break; // Stop searching once the player's room is found
