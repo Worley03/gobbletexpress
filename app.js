@@ -165,13 +165,9 @@ io.on('connection', (socket) => {
             }
                 // Reset the room if it's empty or under certain conditions
             else if (roomStates[room].players.length === 0) {
-                setTimeout(() => {
-                      if (roomStates[room].players.length === 0) {
-                         resetRoomState(room);
-                         resetLastLeft(room);
-                         console.log(`${room} reset`);
-                        }
-                }, 3000); // 3 seconds delay
+                resetRoomState(room);
+                resetLastLeft(room);
+                console.log(`${room} reset`);
             }
         }
     });
@@ -190,13 +186,8 @@ io.on('connection', (socket) => {
                     // Notify the remaining player that their opponent has disconnected
                     io.to(room).emit('opponentDisconnected');
                 } else if (state.players.length === 0) {
-                    setTimeout(() => {
-                        if (state.players.length === 0) {
-                           resetRoomState(room);
-                           resetLastLeft(room);
-                           console.log(`${room} reset`);
-                          }
-                  }, 3000); // 3 seconds delay
+                    resetRoomState(room);
+                    resetLastLeft(room);
                 }
 
                 break; // Stop searching once the player's room is found
