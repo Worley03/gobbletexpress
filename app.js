@@ -165,9 +165,13 @@ io.on('connection', (socket) => {
             }
                 // Reset the room if it's empty or under certain conditions
             else if (roomStates[room].players.length === 0) {
-                resetRoomState(room);
-                resetLastLeft(room);
-                console.log(`${room} reset`);
+                setTimeout(() => {
+                      if (roomStates[room].players.length === 0) {
+                         resetRoomState(room);
+                         resetLastLeft(room);
+                         console.log(`${room} reset`);
+                        }
+                }, 1000); // 1 seconds delay
             }
         }
     });
