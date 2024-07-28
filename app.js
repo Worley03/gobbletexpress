@@ -71,7 +71,7 @@ io.on('connection', (socket) => {
             const rooms = Array.from(socket.rooms).filter(room => room !== socket.id);
             console.log(`User with socket ID ${socket.id} reconnected to ${rooms[0]}`);
             // Emit the event to the recovered room
-            io.to(rooms[0]).emit('opponentConnected');
+            socket.to(rooms[0]).emit('opponentConnected');
         }  
     } else {
         // run initial room join fuctions
