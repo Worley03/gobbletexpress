@@ -60,6 +60,7 @@ const io = new socketIo.Server(httpServer, {
 
 // Add a new endpoint to check the server status
 app.get('/status', (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.json({ status: 'Server is running' });
 });
 
