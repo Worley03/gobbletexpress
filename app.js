@@ -171,7 +171,7 @@ io.on('connection', (socket) => {
                          resetLastLeft(room);
                          console.log(`${room} reset`);
                         }
-                }, 1000); // 1 seconds delay
+                }, 3000); // 3 seconds delay
             }
         }
     });
